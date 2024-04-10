@@ -1,43 +1,54 @@
-## Panorama Stitching Project
-Panoramic images provide a wide field of view, offering an immersive experience in photography. However, creating seamless panoramas from multiple overlapping images can be challenging due to the need for precise image alignment and seamless blending. This project aims to address these challenges by using algorithms to automatically detect overlapping regions and align the images correctly, utilizing techniques like feature detection and feature matching.
+## Finetuning Diffusion Model for Image Super-Resolution on Retinal Images
+This project explores the use of a ResShift: diffusion model for the task of image super-resolution by residual shifting, specifically focusing on retinal images. Recent advancements in diffusion models have shown that they can outperform traditional approach that rely on GANs in various image generation and enhancement applications.
+
+### Motivation
+The motivation behind this project is to improve the quality and clarity of retinal images as they are crucial for accurate medical diagnosis. By leveraging the strengths of diffusion models and the proposed residual shifting approach, the ResShift model aims to effectively solve the image super-resolution task, particularly on retinal images, providing higher-quality and more detailed images for better medical assessment.
 
 ### Methodology
 
-##### 1. SIFT Feature Detection
-Detect keypoints and compute descriptors using SIFT for each input image. The algorithm used is the scale-invariant feature transform which helps to detect interest points, describe, and match local features in images. 
+##### 1. Model Design
+The core idea of this model is to construct a Markov chain that serves as a bridge between the low-resolution (LR) and high-resolution (HR) image pairs. The model transits from the HR image to the LR image by gradually shifting the residual between the two.
 
-##### 2. Feature Matching
-It is useful to match and establish the descriptors between overlapping image pairs to find correspondences. Keypoints are characterized by descriptors, which are feature vectors representing the local image information around each keypoint. Euclidean distance measures the similarity or dissimilarity between the descriptors of two keypoints. Smaller the distances higher is the similarity.
+##### 2. Forward Process
+The forward process defines the transition distribution to gradually shift the residual between the HR and LR images through a Markov chain of length T. The transition distribution is formulated as:
 
-##### 3. Homography Estimation
-The matched feature correspondences are used to estimate the homography matrix between image pairs. This matrix describes the geometric relationship between corresponding points in the two images. An specific algorithm will be used to find the values of this matrix such as Direct Linear Transformation or Normalized Direct Linear Transformation depending upon the noise in the image captured.
+$q(x_t | x_{t-1}, y_0) = N(x_t; x_{t-1} + α_t * (y_0 - x_0), κ^2 * α_t * I)$
 
-##### 4. Image Warping and Stitching
-Apply the estimated homography to warp and align the overlapping images onto a common coordinate system, forming the panoramic view.
+where $α_t$ is the incremental shift in the residual at each timestep, and $κ$ is a hyperparameter controlling the noise variance.
 
-##### 5. Weighted Blending
-Depending upon the output from the above steps weighted blending technique such as feathering will be applied. It will seamlessly merge the overlapping regions and minimize visible seams or exposure differences because simply averaging the images doesn't solve the issue and seams might still be visible. Thus to remove hard seams that may arise due to vignetting, exposure differences, blending technique will be used.
+The marginal distribution at any timestep t is analytically integrable, given by:
 
-### Expected Outcomes
-Development of a robust panorama stitching pipeline capable of handling varying image orientations and lighting conditions.
-Stitching multiple images together to obtain a wider panorama. <br>
-Additionally, I am to include an input image loading and selection interface as well as an interactive panorama viewer in this project. This will allow users to easily load and select the set of overlapping images they want to stitch into a panoroma and to zoom and navigate through the stitched panoramic image.
+$q(x_t | x_0, y_0) = N(x_t; x_0 + η_t * (y_0 - x_0), κ^2 * η_t * I)$
+
+##### 3. Reverse Process
+The reverse process aims to estimate the posterior distribution $p(x_0 | y_0)$ by learning the inverse transition kernel $p_θ(x_{t-1} | x_t, y_0)$ parameterized by θ. The optimization is achieved by minimizing the negative evidence lower bound.
+
+##### 4. Noise Schedule
+The proposed method employs a hyperparameter κ and a shifting sequence ${η_t}_{t=1}^T$ to determine the noise schedule in the diffusion process. The shifting sequence $√η_t$ is designed using a non-uniform geometric schedule to provide flexibility in controlling the shifting speed and the trade-off between fidelity and realism in the SR results.
+Additionally, an elaborate noise schedule is developed to flexibly control the shifting speed and the noise strength during the diffusion process. 
+
+### Dataset 
+
+The dataset used in the finetuning process is
+    [STARE](https://www.kaggle.com/datasets/vidheeshnacode/stare-dataset)  (STructured Analysis of the Retina) Dataset from Kaggle: **https://www.kaggle.com/datasets/vidheeshnacode/stare-dataset**
+
 
 ### Usage
-Input: Multiple overlapping images. <br>
-Output: A stitched panoramic image.
+    Input: High Resolution(HR) and Low Resolution(LR) Retinal Image Pair
+    
+    Output: Given the Low Resolution Input image, the model reconstructs the high resolution
 
-### Dependencies
-OpenCV : Used for SIFT feature detection, feature matching, homography estimation, image warping, and blending. <br>
-numpy : Used for numerical operations
+### Requirements
+* Python 3.10
+* Pytorch 2.1.2
+* xformers 0.0.23
 
-#### Installation the dependencies using:    
-    pip install opencv-python numpy
+### Acknowledgement
+This project is based on the paper : [ResShift: Efficient Diffusion Model for Image Super-resolution by Residual Shifting](https://arxiv.org/abs/2307.12348)
 
-    Run the python script for panorama stitching where input images are arguments:
-        python panorama_stitching.py image1.jpg image2.jpg ...
+* Authors: Zongsheng Yue, Jianyi Wang, Chen Change Loy
 
 ### Contributors
-    * Santosh Adhikari
+* Santosh Adhikari
 
 
