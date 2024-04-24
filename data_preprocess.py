@@ -35,7 +35,7 @@ def prepare_train_data(image_path):
     hr_img = cv2.cvtColor(hr_img, cv2.COLOR_BGR2YCrCb) #YCrCb separates the grayscale information from the color information allowing for more efficient compression and processing of image data.
     hr_img = hr_img[:, :, 0] #converts the image from YCrCb color space to grayscale by discarding color information
     shape = hr_img.shape
-    print(f"Shape of HR Image is: {image_path, shape}")
+    # print(f"Shape of HR Image is: {image_path, shape}")
 
     """Downsampling by resizing to reduce the number of pixels in the image and 
         then upsampling the LR image to be of same size as HR original image"""
@@ -43,15 +43,16 @@ def prepare_train_data(image_path):
     lr_img = cv2.resize(hr_img, (int(shape[1] / scale), int(shape[0] / scale))) #shape[1] is the width of the original (HR) image, shape[0] is the height of the original image.
     lr_img = cv2.resize(lr_img, (shape[1], shape[0]))
 
-    """Calculate the number of non-overlapping blocks that can fit within the width and height of the image for extracting patches from image"""
+    """Calculate the number of non-overlapping blocks that can fit within the width and 
+    height of the image for extracting patches from image"""
 
     width_num = int((shape[0] - (block_size - block_step) * 2) / block_step) #(block_size - block_step) * 2 calculates the total overlap introduced by the blocks in the height dimension
     height_num = int((shape[1] - (block_size - block_step) * 2) / block_step)
 
     data = []
     label = []
-    hr_patches = []
-    lr_patches = []
+    # hr_patches = []
+    # lr_patches = []
 
     for k in range(width_num):
         for j in range(height_num):
@@ -67,7 +68,7 @@ def prepare_train_data(image_path):
 
             #convert patch to pytorch tensor 
             lr = torch.from_numpy(lr_patch).unsqueeze(0).unsqueeze(0).float()  #input image is grayscale so unsqueeze(0) is used to add batch dimension and channel dimen
-            hr = torch.from_numpy(hr_patch[conv_side: -conv_side, conv_side: -conv_side]).unsqueeze(0).float()
+            hr = torch.from_numpy(hr_patch[conv_side: -conv_side, conv_side: -conv_side]).unsqueeze(0).unsqueeze(0).float()
             # lists to hold the LR and HR patches for all blocks within the specific image
             data.append(lr)
             label.append(hr)
@@ -113,7 +114,7 @@ def prepare_test_data(image_path):
         hr_patch = hr_patch.astype(float) / 255.
 
         lr = torch.from_numpy(lr_patch).unsqueeze(0).unsqueeze(0).float()
-        hr = torch.from_numpy(hr_patch[conv_side: -conv_side, conv_side: -conv_side]).unsqueeze(0).float()
+        hr = torch.from_numpy(hr_patch[conv_side: -conv_side, conv_side: -conv_side]).unsqueeze(0).unsqueeze(0).float()
 
         data.append(lr)
         label.append(hr)
@@ -134,14 +135,14 @@ if __name__ == "__main__":
     # Prepare training data
     train_data = []
     train_label = []
-    count1 = 0
+    #count1 = 0
     for img_path in train_images:
         data, label = prepare_train_data(img_path)
         train_data.append(data)
         train_label.append(label)
-        count1 = count1 + 1 #For testing
-        if count1 == 1:
-            break
+        # count1 = count1 + 1 #For testing
+        # if count1 == 1:
+        #     break
 
     train_data = np.concatenate(train_data)
     train_label = np.concatenate(train_label)
@@ -149,14 +150,14 @@ if __name__ == "__main__":
     # Prepare test data
     test_data = []
     test_label = []
-    count2 = 0
+    # count2 = 0
     for img_path in test_images:
         data, label = prepare_test_data(img_path)
         test_data.append(data)
         test_label.append(label)
-        count2 = count2 + 1 #For testing 
-        if count2 == 5:
-            break
+        # count2 = count2 + 1 #For testing 
+        # if count2 == 5:
+        #     break
 
     test_data = np.concatenate(test_data)
     test_label = np.concatenate(test_label)
@@ -172,18 +173,10 @@ if __name__ == "__main__":
         h.create_dataset('label', data=test_label)
         print("Testing data written successfully !")
 
+    # View contents of train_dataset
+    print("Train Data Shape:", train_data.shape)
+    print("Train Label Shape:", train_label.shape)
 
-
-#View the content of the .h5 file
-"""import h5py
-
-# Open the HDF5 file
-with h5py.File('your_file.h5', 'r') as hf:
-    # Print the keys (dataset names) present in the file
-    print("Keys: ", hf.keys())
-
-    # Access and print the datasets
-    for key in hf.keys():
-        dataset = hf[key]
-        print(f"Dataset '{key}':")
-        print(dataset)"""
+    print("Test Data Shape:", test_data.shape)
+    print("Test Label Shape:", test_label.shape)
+    
