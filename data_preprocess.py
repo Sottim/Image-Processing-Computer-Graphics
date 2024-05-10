@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 import torch
 import torchvision.transforms as transforms
+import random
 
 
 from sklearn.model_selection import train_test_split
@@ -41,7 +42,10 @@ def prepare_train_data(image_path):
         then upsampling the LR image to be of same size as HR original image"""
     
     lr_img = cv2.resize(hr_img, (int(shape[1] / scale), int(shape[0] / scale))) #shape[1] is the width of the original (HR) image, shape[0] is the height of the original image.
+    # print("Low Reso image after downsample: ", lr_img.shape)
     lr_img = cv2.resize(lr_img, (shape[1], shape[0]))
+    # print("Low Reso image after resizing to size of HR image: ", lr_img.shape)
+
 
     """Calculate the number of non-overlapping blocks that can fit within the width and 
     height of the image for extracting patches from image"""
@@ -51,8 +55,9 @@ def prepare_train_data(image_path):
 
     data = []
     label = []
-    # hr_patches = []
-    # lr_patches = []
+
+    hr_patches = []
+    lr_patches = []
 
     for k in range(width_num):
         for j in range(height_num):
@@ -63,23 +68,32 @@ def prepare_train_data(image_path):
             hr_patch = hr_img[x: x + block_size, y: y + block_size]
             lr_patch = lr_img[x: x + block_size, y: y + block_size]
 
+            # Data Augmentation
+            if random.random() > 0.5:
+                hr_patch = np.fliplr(hr_patch)
+                lr_patch = np.fliplr(lr_patch)
+
+            if random.random() > 0.5:
+                hr_patch = np.flipud(hr_patch)
+                lr_patch = np.flipud(lr_patch)
+
             lr_patch = lr_patch.astype(float) / 255.
             hr_patch = hr_patch.astype(float) / 255.
 
             #convert patch to pytorch tensor 
-            lr = torch.from_numpy(lr_patch).unsqueeze(0).unsqueeze(0).float()  #input image is grayscale so unsqueeze(0) is used to add batch dimension and channel dimen
-            hr = torch.from_numpy(hr_patch[conv_side: -conv_side, conv_side: -conv_side]).unsqueeze(0).unsqueeze(0).float()
+            lr = torch.from_numpy(lr_patch).unsqueeze(0).float()  #input image is grayscale so unsqueeze(0) is used to add batch dimension and channel dimen
+            hr = torch.from_numpy(hr_patch[conv_side: -conv_side, conv_side: -conv_side]).unsqueeze(0).float()
             # lists to hold the LR and HR patches for all blocks within the specific image
             data.append(lr)
             label.append(hr)
            
             #For saving the image pathces
-            """
             hr_patches.append(hr_patch)
             lr_patches.append(lr_patch)
 
     hr_patches = np.array(hr_patches)
     lr_patches = np.array(lr_patches)
+    """
     save_patches(hr_patches, 'hr_patches_train')
     save_patches(lr_patches, 'lr_patches_train') """
 
@@ -113,8 +127,8 @@ def prepare_test_data(image_path):
         lr_patch = lr_patch.astype(float) / 255.
         hr_patch = hr_patch.astype(float) / 255.
 
-        lr = torch.from_numpy(lr_patch).unsqueeze(0).unsqueeze(0).float()
-        hr = torch.from_numpy(hr_patch[conv_side: -conv_side, conv_side: -conv_side]).unsqueeze(0).unsqueeze(0).float()
+        lr = torch.from_numpy(lr_patch).unsqueeze(0).float()
+        hr = torch.from_numpy(hr_patch[conv_side: -conv_side, conv_side: -conv_side]).unsqueeze(0).float()
 
         data.append(lr)
         label.append(hr)
